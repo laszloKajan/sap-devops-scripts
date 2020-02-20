@@ -10,7 +10,7 @@ nodeName="${3:-eu10_dev_development}";
 mtaPath="*.mtar"
 #namedUser=""
 description=${bamboo_planRepository_1_revision};
-if ![ "$description" ]; then description=$(git rev-parse HEAD); fi;
+if ! [ "$description" ]; then description=$(git rev-parse HEAD); fi;
 [ "$description" ];
 if [ "$verbose" ]; then echo "Description: '${description}'" >&2; fi;
 
