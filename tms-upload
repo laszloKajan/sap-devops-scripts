@@ -40,6 +40,7 @@ authentication () {
     local response;
     response=$(curl \
         --insecure \
+        --no-progress-meter \
         -H "authorization: Basic ${encodedUsernameColonPassword}" \
         -H "Accept: application/json" \
         --data-urlencode "grant_type=password" \
@@ -62,8 +63,11 @@ uploadFile () {
     echo "File upload started." >&2;
     if [ "$verbose" ]; then echo "URL: '${url}', File: '${file}', namedUser: '${namedUser}'" >&2; fi;
 
+        #--verbose \
+
     curl \
-        --verbose \
+        --insecure \
+        --no-progress-meter \
         -H "Authorization: Bearer ${token}" \
         ${namedUser:+"-F \"namedUser=${namedUser}\""} \
         -F "file=@${file}" \
@@ -95,6 +99,7 @@ uploadFileToNode () {
 
     curl \
         --insecure \
+        --no-progress-meter \
         -H "Content-Type: application/json" \
         -H "authorization: Bearer ${token}" \
         -H "Accept: application/json" \
