@@ -1,0 +1,109 @@
+#!/bin/sh -e
+# tmp-upload "${serviceKey}" "${workspace:-mta_archives}" "${nodeName:-eu10_dev_development}"
+#
+verbose=1
+
+serviceKey="${1:?}";
+workspace="${2:-mta_archives}";
+nodeName="${3:-eu10_dev_development}";
+
+mtaPath="*.mtar"
+#namedUser=""
+description=${bamboo_planRepository_1_revision};
+if ![ "$description" ]; then description=$(git rev-parse HEAD); fi;
+[ "$description" ];
+if [ "$verbose" ]; then echo "Description: '${description}'" >&2; fi;
+
+# Development_Tools
+clientId=$(echo "$serviceKey" | jq -r '.uaa.clientid'); [ "$clientId" ];
+clientSecret=$(echo "$serviceKey" | jq -r '.uaa.clientsecret'); [ "$clientSecret" ];
+uaaUrl=$(echo "$serviceKey" | jq -r '.uaa.url'); [ "$uaaUrl" ];
+uri=$(echo "$serviceKey" | jq -r '.uri'); [ "$uri" ];
+
+if [ "$verbose" ]; then
+    echo "[TransportManagementService] UAA URL: '${uaaUrl}'" >&2;
+    echo "[TransportManagementService] TMS URL: '${uri}'" >&2;
+    echo "[TransportManagementService] ClientId: '${clientId}'" >&2;
+fi;
+
+# def token = tms.authentication(uaaUrl, clientId, clientSecret)
+authentication () {
+    local oauthClientId="${1}";
+    local oauthClientSecret="${2}";
+
+    echo "OAuth Token retrieval started." >&2;
+    if [ "$verbose" ]; then echo "UAA-URL: '${uaaUrl}', ClientId: '${oauthClientId}'" >&2; fi;
+
+    local encodedUsernameColonPassword=$(echo -n "${oauthClientId}:${oauthClientSecret}" | base64 -w 0 -);
+
+    #    ${verbose:+--verbose} \
+    local response;
+    response=$(curl \
+        --insecure \
+        -H "authorization: Basic ${encodedUsernameColonPassword}" \
+        -H "Accept: application/json" \
+        --data-urlencode "grant_type=password" \
+        --data-urlencode "username=${oauthClientId}" \
+        --data-urlencode "password=${oauthClientSecret}" \
+        "${uaaUrl}/oauth/token/?grant_type=client_credentials&response_type=token");
+
+    echo "$response" | jq -r '.access_token'
+};
+token=$(authentication "$clientId" "$clientSecret");
+
+uploadFile () {
+    local url="${1}";
+    local token;
+    token="${2}";
+    local file="${3}";
+    local namedUser="${4}";
+
+    
+    echo "File upload started." >&2;
+    if [ "$verbose" ]; then echo "URL: '${url}', File: '${file}', namedUser: '${namedUser}'" >&2; fi;
+
+    curl \
+        --verbose \
+        -H "Authorization: Bearer ${token}" \
+        ${namedUser:+"-F \"namedUser=${namedUser}\""} \
+        -F "file=@${file}" \
+        "${url}/v2/files/upload";
+};
+workspaceMtaPath=`echo ${workspace}/${mtaPath}`; # * expansion
+fileUploadResponse=$(uploadFile "$uri" "$token" "${workspaceMtaPath}" "$namedUser");
+
+fileId=$(echo "${fileUploadResponse}" | jq -r '.fileId');
+[ "$fileId" ];
+
+uploadFileToNode () {
+    local url="${1}";
+    local token;
+    token="${2}";
+    local nodeName="${3}";
+    local fileId="${4}";
+    local description="${5}";
+    local namedUser="${6}";
+
+    echo "Node upload started." >&2;
+    if [ "$verbose" ]; then echo "URL: '${url}', NodeName: '${nodeName}', FileId: '${fileId}'" >&2; fi;
+
+    local jsonToSend;
+    jsonToSend="{\"nodeName\": \"${nodeName}\", \"contentType\": \"MTA\", "\
+"\"description\": \"${description}\", "\
+"\"storageType\": \"FILE\", ${namedUser:+\"namedUser\": \"${namedUser}\",} "\
+"\"entries\": [{\"uri\": \"${fileId}\"}]}";
+
+    curl \
+        --insecure \
+        -H "Content-Type: application/json" \
+        -H "authorization: Bearer ${token}" \
+        -H "Accept: application/json" \
+        --data-binary "${jsonToSend}" \
+        "${url}/v2/nodes/upload";
+};
+uploadFileToNodeResponse=$(uploadFileToNode "$uri" "$token" "$nodeName" "$fileId" "$description" "$namedUser");
+
+echo "fileUploadResponse=${fileUploadResponse}" >&2;
+echo "uploadFileToNodeResponse=${uploadFileToNodeResponse}" >&2;
+
+# vim:et:
