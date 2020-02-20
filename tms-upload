@@ -40,7 +40,7 @@ authentication () {
     local response;
     response=$(curl \
         --insecure \
-        --no-progress-meter \
+        --silent --show-error \
         -H "authorization: Basic ${encodedUsernameColonPassword}" \
         -H "Accept: application/json" \
         --data-urlencode "grant_type=password" \
@@ -67,7 +67,7 @@ uploadFile () {
 
     curl \
         --insecure \
-        --no-progress-meter \
+        --silent --show-error \
         -H "Authorization: Bearer ${token}" \
         ${namedUser:+"-F \"namedUser=${namedUser}\""} \
         -F "file=@${file}" \
@@ -99,7 +99,7 @@ uploadFileToNode () {
 
     curl \
         --insecure \
-        --no-progress-meter \
+        --silent --show-error \
         -H "Content-Type: application/json" \
         -H "authorization: Bearer ${token}" \
         -H "Accept: application/json" \
