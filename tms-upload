@@ -39,7 +39,6 @@ authentication () {
     #    ${verbose:+--verbose} \
     local response;
     response=$(curl \
-        --fail \
         --insecure \
         --silent --show-error \
         -H "authorization: Basic ${encodedUsernameColonPassword}" \
@@ -67,7 +66,6 @@ uploadFile () {
         #--verbose \
 
     curl \
-        --fail \
         --insecure \
         --silent --show-error \
         -H "Authorization: Bearer ${token}" \
@@ -100,7 +98,6 @@ uploadFileToNode () {
 "\"entries\": [{\"uri\": \"${fileId}\"}]}";
 
     curl \
-        --fail \
         --insecure \
         --silent --show-error \
         -H "Content-Type: application/json" \
@@ -114,7 +111,8 @@ uploadFileToNodeResponse=$(uploadFileToNode "$uri" "$token" "$nodeName" "$fileId
 echo "fileUploadResponse=${fileUploadResponse}" >&2;
 echo "uploadFileToNodeResponse=${uploadFileToNodeResponse}" >&2;
 
-# kajanl: Check the response, and exit with success only if it indicates success:
+# kajanl: Check the response, and exit with success only if it indicates success, see:
+#   https://api.sap.com/api/TMS_v2/resource
 transportRequestId=$(echo "${uploadFileToNodeResponse}" | jq -r '.transportRequestId');
 [ "$transportRequestId" ];
 
