@@ -1,12 +1,17 @@
 #!/bin/sh -e
-# tmp-upload "${serviceKey}" "${workspace:-mta_archives}" "${nodeName:-eu10_dev_development}"
+# TMService API: https://api.sap.com/api/TMS_v2/resource
+#            1               2                            3                  4                5
+# tmp-upload "${serviceKey}" "${workspace:-mta_archives}" "${nodeName:-DCP}" "${doImport:-1}" "${doForward:-1}"
 #
 verbose=1
 
 serviceKey="${1:?}";
 workspace="${2:-mta_archives}";
-nodeName="${3:-eu10_dev_development}";
+nodeName=$(echo "${3:-DCP}" | tr -d '/');
+doImport="${4:-1}";
+doForward="${5:-1}";
 
+INSECURE=--insecure
 mtaPath="*.mtar"
 #namedUser=""
 description=${bamboo_planRepository_1_revision};
@@ -39,7 +44,7 @@ authentication () {
     #    ${verbose:+--verbose} \
     local response;
     response=$(curl \
-        --insecure \
+        $INSECURE \
         --silent --show-error \
         -H "authorization: Basic ${encodedUsernameColonPassword}" \
         -H "Accept: application/json" \
@@ -50,46 +55,78 @@ authentication () {
 
     echo "$response" | jq -er '.access_token'
 };
-token=$(authentication "$clientId" "$clientSecret");
+
+getServiceVersion () {
+    local url="${1}";
+    local token; token="${2}";
+
+    echo "Service version retrieval started." >&2;
+
+    curl \
+        $INSECURE \
+        --verbose \
+        -H "Authorization: Bearer ${token}" \
+        "${url}/versions";
+
+};
+
+getNodes () {
+    local url="${1}";
+    local token; token="${2}";
+
+    echo "Node retrieval started." >&2;
+
+        #--verbose \
+    curl \
+        $INSECURE \
+        -H "Authorization: Bearer ${token}" \
+        "${url}/v2/nodes";
+};
+
+getTransportRequests () {
+    local url="${1}";
+    local token; token="${2}";
+    local nodeId="${3}";
+
+    echo "Transport request retrieval started." >&2;
+
+        #--verbose \
+    curl \
+        $INSECURE \
+        -H "Authorization: Bearer ${token}" \
+        "${url}/v2/nodes/${nodeId}/transportRequests?status=fa";
+};
 
 uploadFile () {
     local url="${1}";
-    local token;
-    token="${2}";
+    local token; token="${2}";
     local file="${3}";
     local namedUser="${4}";
-
     
     echo "File upload started." >&2;
     if [ "$verbose" ]; then echo "URL: '${url}', File: '${file}', namedUser: '${namedUser}'" >&2; fi;
 
         #--verbose \
-
     curl \
-        --insecure \
+        $INSECURE \
         --silent --show-error \
         -H "Authorization: Bearer ${token}" \
         ${namedUser:+"-F \"namedUser=${namedUser}\""} \
         -F "file=@${file}" \
         "${url}/v2/files/upload";
 };
-workspaceMtaPath=`echo ${workspace}/${mtaPath}`; # * expansion
-fileUploadResponse=$(uploadFile "$uri" "$token" "${workspaceMtaPath}" "$namedUser");
 
-fileId=$(echo "${fileUploadResponse}" | jq -er '.fileId');
-[ "$fileId" ];
-
-uploadFileToNode () {
+exportUploadFileToNode () {
     local url="${1}";
-    local token;
-    token="${2}";
+    local token; token="${2}";
     local nodeName="${3}";
     local fileId="${4}";
     local description="${5}";
     local namedUser="${6}";
+    local exportUpload="${7:-upload}"; # [export|upload]
 
     echo "Node upload started." >&2;
-    if [ "$verbose" ]; then echo "URL: '${url}', NodeName: '${nodeName}', FileId: '${fileId}'" >&2; fi;
+    if [ "$verbose" ]; then echo "URL: '${url}', NodeName: '${nodeName}', FileId: '${fileId}', Action: '${exportUpload}'" >&2; fi;
 
     local jsonToSend;
     jsonToSend="{\"nodeName\": \"${nodeName}\", \"contentType\": \"MTA\", "\
@@ -98,15 +135,99 @@ uploadFileToNode () {
 "\"entries\": [{\"uri\": \"${fileId}\"}]}";
 
     curl \
-        --insecure \
+        $INSECURE \
         --silent --show-error \
         -H "Content-Type: application/json" \
         -H "authorization: Bearer ${token}" \
         -H "Accept: application/json" \
         --data-binary "${jsonToSend}" \
-        "${url}/v2/nodes/upload";
+        "${url}/v2/nodes/${exportUpload}";
 };
-uploadFileToNodeResponse=$(uploadFileToNode "$uri" "$token" "$nodeName" "$fileId" "$description" "$namedUser");
+
+importTransportRequests () {
+    local url="${1}";
+    local token; token="${2}";
+    local nodeId="${3}";
+    local reqId="${4}";
+
+    echo "Import started." >&2;
+    if [ "$verbose" ]; then echo "URL: '${url}', NodeId: '${nodeId}', ReqId: '${reqId}'" >&2; fi;
+
+    local jsonToSend;
+    jsonToSend="{\"transportRequests\": [$reqId]}";
+
+    curl \
+        $INSECURE \
+        --silent --show-error \
+        -H "Content-Type: application/json" \
+        -H "authorization: Bearer ${token}" \
+        -H "Accept: application/json" \
+        --data-binary "${jsonToSend}" \
+        "${url}/v2/nodes/$nodeId/transportRequests/import";
+};
+
+getActions () {
+    local url="${1}";
+    local token; token="${2}";
+    local actionId="${3}";
+
+    [ "$actionId" ];
+
+    echo "getActions started." >&2;
+    if [ "$verbose" ]; then echo "URL: '${url}', ActionId: '${actionId}'" >&2; fi;
+
+    curl \
+        $INSECURE \
+        --silent --show-error \
+        -H "Authorization: Bearer ${token}" \
+        "${url}/v2/actions/${actionId}";
+};
+
+forwardTransportRequests () {
+    local url="${1}";
+    local token; token="${2}";
+    local nodeId="${3}";
+    local reqId="${4}";
+
+    echo "Forward started." >&2;
+    if [ "$verbose" ]; then echo "URL: '${url}', NodeId: '${nodeId}', ReqId: '${reqId}'" >&2; fi;
+
+    local jsonToSend;
+    jsonToSend="{\"transportRequests\": [$reqId]}";
+
+    curl \
+        $INSECURE \
+        --silent --show-error \
+        --write-out '\n{"http_code": "%{http_code}"}' \
+        -H "Content-Type: application/json" \
+        -H "authorization: Bearer ${token}" \
+        -H "Accept: application/json" \
+        --data-binary "${jsonToSend}" \
+        "${url}/v2/nodes/$nodeId/transportRequests/forward";
+};
+
+
+# Action -----------------------------------------------------------------------
+
+token=$(authentication "$clientId" "$clientSecret");
+
+## {Testing
+##set -x;
+##getServiceVersion "$uri" "$token";
+#tmsNodes=$(getNodes "$uri" "$token");
+#nodeId=$(echo "$tmsNodes" | jq -er ".nodes[] | select(.name == \"${nodeName}\").id");
+#echo "nodeId=${nodeId}" >&2;
+#getTransportRequests "$uri" "$token" "$nodeId" 2>/dev/null;
+#exit 0;
+## Testing}
+
+workspaceMtaPath=`echo ${workspace}/${mtaPath}`; # * expansion
+fileUploadResponse=$(uploadFile "$uri" "$token" "${workspaceMtaPath}" "$namedUser");
+
+fileId=$(echo "${fileUploadResponse}" | jq -er '.fileId');
+[ "$fileId" ];
+
+uploadFileToNodeResponse=$(exportUploadFileToNode "$uri" "$token" "$nodeName" "$fileId" "$description" "$namedUser" "upload");
 
 echo "fileUploadResponse=${fileUploadResponse}" >&2;
 echo "uploadFileToNodeResponse=${uploadFileToNodeResponse}" >&2;
@@ -115,5 +236,39 @@ echo "uploadFileToNodeResponse=${uploadFileToNodeResponse}" >&2;
 #   https://api.sap.com/api/TMS_v2/resource
 transportRequestId=$(echo "${uploadFileToNodeResponse}" | jq -er '.transportRequestId');
 [ "$transportRequestId" ];
+nodeId=$(echo "${uploadFileToNodeResponse}" | jq -er ".queueEntries[] | select(.nodeName == \"${nodeName}\").nodeId");
+[ "$nodeId" ];
+
+# Import to $nodeName
+if [ "$doImport" = "1" ]; then
+    importResponse=$(importTransportRequests "$uri" "$token" "$nodeId" "$transportRequestId" import);
+    # E.g. importResponse={"actionId":3838,"monitoringURL":"/v2/actions/3838"}
+    echo "importResponse=${importResponse}" >&2;
+
+    actionId=$(echo "$importResponse" | jq -er '.actionId');
+    [ "$actionId" ];
+
+    # Wait for import run to end
+    repeat=1
+    while [ $repeat = 1 ]; do
+        sleep 23;
+        actionsResponse=$(getActions "$uri" "$token" "$actionId");
+        echo "actionsResponse=${actionsResponse}" >&2;
+
+        actionStatus=$(echo "$actionsResponse" | jq -er ".status");
+        if [ "$actionStatus" != "running" ]; then break; fi;
+    done;
+    [ "$actionStatus" = "succeeded" ];
+fi;
+
+# Forward from $nodeName
+if [ "$doForward" = "1" ]; then
+    forwardResponse=$(forwardTransportRequests "$uri" "$token" "$nodeId" "$transportRequestId" forward);
+    # 204 on success, no body
+    echo "forwardResponse=${forwardResponse}" >&2;
+
+    forwardHttpCode=$(echo "$forwardResponse" | sed -n '$p' | jq -er '.http_code');
+    [ "$forwardHttpCode" = "204" ];
+fi;
 
 # vim:et:
