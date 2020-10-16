@@ -14,10 +14,13 @@ doForward="${5:-1}";
 INSECURE=--insecure
 mtaPath="*.mtar"
 #namedUser=""
-description=${bamboo_planRepository_1_revision};
-if ! [ "$description" ]; then description=$(git rev-parse HEAD); fi;
+commit=$(git rev-parse HEAD);
+workItem=$WORKITEM
+[ "$workItem" ];
+description="WI: $workItem, commit: $commit";
 [ "$description" ];
 if [ "$verbose" ]; then echo "Description: '${description}'" >&2; fi;
+#exit 1;
 
 # Development_Tools
 clientId=$(echo "$serviceKey" | jq -er '.uaa.clientid'); [ "$clientId" ];
@@ -128,11 +131,14 @@ exportUploadFileToNode () {
     echo "Node upload started." >&2;
     if [ "$verbose" ]; then echo "URL: '${url}', NodeName: '${nodeName}', FileId: '${fileId}', Action: '${exportUpload}'" >&2; fi;
 
+    # Description: Only Latin letters, numbers, spaces and following characters are allowed: "-._~:\/?#[]@!$&()*+,;=%", max length 512
+    local encDesc; encDesc=$(echo "$description" | sed 's/"/\\"/g');
     local jsonToSend;
     jsonToSend="{\"nodeName\": \"${nodeName}\", \"contentType\": \"MTA\", "\
-"\"description\": \"${description}\", "\
+"\"description\": \"${encDesc}\", "\
 "\"storageType\": \"FILE\", ${namedUser:+\"namedUser\": \"${namedUser}\",} "\
 "\"entries\": [{\"uri\": \"${fileId}\"}]}";
+echo "$jsonToSend" >&2;
 
     curl \
         $INSECURE \
