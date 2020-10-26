@@ -242,6 +242,9 @@ echo "uploadFileToNodeResponse=${uploadFileToNodeResponse}" >&2;
 #   https://api.sap.com/api/TMS_v2/resource
 transportRequestId=$(echo "${uploadFileToNodeResponse}" | jq -er '.transportRequestId');
 [ "$transportRequestId" ];
+
+echo "transportRequestId=${transportRequestId}" >&2;
+
 nodeId=$(echo "${uploadFileToNodeResponse}" | jq -er ".queueEntries[] | select(.nodeName == \"${nodeName}\").nodeId");
 [ "$nodeId" ];
 
