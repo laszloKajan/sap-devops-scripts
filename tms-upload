@@ -1,23 +1,23 @@
 #!/bin/sh -e
 # TMService API: https://api.sap.com/api/TMS_v2/resource
-#            1               2                            3                  4                5
-# tmp-upload "${serviceKey}" "${workspace:-mta_archives}" "${nodeName:-DCP}" "${doImport:-1}" "${doForward:-1}"
+#            1               2             3                            4                  5                6
+# tmp-upload "${serviceKey}" "${workitem}" "${workspace:-mta_archives}" "${nodeName:-DCP}" "${doImport:-1}" "${doForward:-1}"
 #
 verbose=1
 
 serviceKey="${1:?}";
-workspace="${2:-mta_archives}";
-nodeName=$(echo "${3:-DCP}" | tr -d '/');
-doImport="${4:-1}";
-doForward="${5:-1}";
+workitem="${2:?}";
+workspace="${3:-mta_archives}";
+nodeName=$(echo "${4:-DCP}" | tr -d '/');
+doImport="${5:-1}";
+doForward="${6:-1}";
 
 INSECURE=--insecure
 mtaPath="*.mtar"
 #namedUser=""
 commit=$(git rev-parse HEAD);
-workItem=$WORKITEM
-[ "$workItem" ];
-description="WI: $workItem, commit: $commit";
+[ "$workitem" ];
+description="WI: $workitem, commit: $commit";
 [ "$description" ];
 if [ "$verbose" ]; then echo "Description: '${description}'" >&2; fi;
 #exit 1;
@@ -244,6 +244,9 @@ transportRequestId=$(echo "${uploadFileToNodeResponse}" | jq -er '.transportRequ
 [ "$transportRequestId" ];
 
 echo "transportRequestId=${transportRequestId}" >&2;
+
+# Print the TMService transport number on STDOUT:
+echo "{\"transportRequestId\": ${transportRequestId}}"; # STDOUT
 
 nodeId=$(echo "${uploadFileToNodeResponse}" | jq -er ".queueEntries[] | select(.nodeName == \"${nodeName}\").nodeId");
 [ "$nodeId" ];
