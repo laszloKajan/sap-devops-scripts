@@ -1,0 +1,50 @@
+#!/bin/sh -e
+# Work Item OData service:
+#   https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET?sap-language=EN&$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%273200000665%27)&$select=Concatstatuser&$format=json
+#            1             2
+# tmp-upload "${workitem}" "${odata:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET}"
+#
+verbose=1
+
+workitem="${1:?}"; # E.g. (cs1) "3200002672", (bs1) "3200000665"
+odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET}";
+
+[ "$workitem" ];
+
+# Environment
+pageuser="${PAGEUSER:?}";
+pagepassword="${PAGEPASSWORD:?}";
+
+INSECURE=--insecure
+encodedUsernameColonPassword="${pageuser}:${pagepassword}";
+#encodedUsernameColonPassword=$(echo -n "${pageuser}:${pagepassword}" | base64 -w 0 -);
+
+getConcatstatuser () {
+    local odata="${1}";
+    local encodedUsernameColonPassword="${2}";
+    local workitem="${3}";
+
+    [ "$encodedUsernameColonPassword" ];
+    [ "$workitem" ];
+
+    echo "getConcatstatuser started." >&2;
+
+        #-H "authorization: Basic ${encodedUsernameColonPassword}" \
+    curl \
+        $INSECURE \
+        --silent --show-error \
+        -u "$encodedUsernameColonPassword" \
+        -H "Accept: application/json" \
+        "${odata}?sap-language=EN&\$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%27${workitem}%27)&\$select=Concatstatuser";
+};
+
+# Action -----------------------------------------------------------------------
+
+workItemJSON=$(getConcatstatuser "$odata" "$encodedUsernameColonPassword" "$workitem");
+Concatstatuser=$(echo "${workItemJSON}" | jq -er '.d.results[0].Concatstatuser');
+
+[ "$Concatstatuser" = "In Development" ];
+
+if [ "$verbose" ]; then echo "Work item ${workitem} is in development." >&2; fi;
+
+# vim:et:

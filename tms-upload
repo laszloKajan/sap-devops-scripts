@@ -6,7 +6,7 @@
 verbose=1
 
 serviceKey="${1:?}";
-workitem="${2:?}";
+workitem="${2:?}"; # E.g. "3200002672"
 workspace="${3:-mta_archives}";
 nodeName=$(echo "${4:-DCP}" | tr -d '/');
 doImport="${5:-1}";
