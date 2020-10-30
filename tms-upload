@@ -26,17 +26,16 @@ INSECURE=--insecure
 mtaPath="*.mtar"
 #namedUser=""
 commit=$(git rev-parse HEAD);
-[ "$workitem" ];
 description="WI: $workitem, commit: $commit";
-[ "$description" ];
+[ "${description:?}" ];
 if [ "$verbose" ]; then echo "Description: '${description}'" >&2; fi;
 #exit 1;
 
 # Development_Tools
-clientId=$(echo "$serviceKey" | jq -er '.uaa.clientid'); [ "$clientId" ];
-clientSecret=$(echo "$serviceKey" | jq -er '.uaa.clientsecret'); [ "$clientSecret" ];
-uaaUrl=$(echo "$serviceKey" | jq -er '.uaa.url'); [ "$uaaUrl" ];
-uri=$(echo "$serviceKey" | jq -er '.uri'); [ "$uri" ];
+clientId=$(echo "$serviceKey" | jq -er '.uaa.clientid'); [ "${clientId:?}" ];
+clientSecret=$(echo "$serviceKey" | jq -er '.uaa.clientsecret'); [ "${clientSecret:?}" ];
+uaaUrl=$(echo "$serviceKey" | jq -er '.uaa.url'); [ "${uaaUrl:?}" ];
+uri=$(echo "$serviceKey" | jq -er '.uri'); [ "${uri:?}" ];
 
 if [ "$verbose" ]; then
     echo "[TransportManagementService] UAA URL: '${uaaUrl}'" >&2;
@@ -187,7 +186,7 @@ getActions () {
     local token; token="${2}";
     local actionId="${3}";
 
-    [ "$actionId" ];
+    [ "${actionId:?}" ];
 
     echo "getActions started." >&2;
     if [ "$verbose" ]; then echo "URL: '${url}', ActionId: '${actionId}'" >&2; fi;
@@ -241,7 +240,7 @@ workspaceMtaPath=`echo ${workspace}/${mtaPath}`; # * expansion
 fileUploadResponse=$(uploadFile "$uri" "$token" "${workspaceMtaPath}" "$namedUser");
 
 fileId=$(echo "${fileUploadResponse}" | jq -er '.fileId');
-[ "$fileId" ];
+[ "${fileId:?}" ];
 
 uploadFileToNodeResponse=$(exportUploadFileToNode "$uri" "$token" "$nodeName" "$fileId" "$description" "$namedUser" "upload");
 
@@ -251,7 +250,7 @@ echo "uploadFileToNodeResponse=${uploadFileToNodeResponse}" >&2;
 # kajanl: Check the response, and exit with success only if it indicates success, see:
 #   https://api.sap.com/api/TMS_v2/resource
 transportRequestId=$(echo "${uploadFileToNodeResponse}" | jq -er '.transportRequestId');
-[ "$transportRequestId" ];
+[ "${transportRequestId:?}" ];
 
 echo "transportRequestId=${transportRequestId}" >&2;
 
@@ -259,7 +258,7 @@ echo "transportRequestId=${transportRequestId}" >&2;
 echo "{\"transportRequestId\": ${transportRequestId}}"; # STDOUT
 
 nodeId=$(echo "${uploadFileToNodeResponse}" | jq -er ".queueEntries[] | select(.nodeName == \"${nodeName}\").nodeId");
-[ "$nodeId" ];
+[ "${nodeId:?}" ];
 
 # Import to $nodeName
 if [ "$doImport" = "1" ]; then
@@ -268,7 +267,7 @@ if [ "$doImport" = "1" ]; then
     echo "importResponse=${importResponse}" >&2;
 
     actionId=$(echo "$importResponse" | jq -er '.actionId');
-    [ "$actionId" ];
+    [ "${actionId:?}" ];
 
     # Wait for import run to end
     repeat=1

@@ -19,8 +19,6 @@ verbose=1
 workitem="${1:?}"; # E.g. (cs1) "3200002672", (bs1) "3200000665"
 odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET}";
 
-[ "$workitem" ];
-
 # Environment
 pageuser="${SOLMAN_USER:?}";
 pagepassword="${SOLMAN_PASS:?}";
@@ -34,8 +32,8 @@ getConcatstatuser () {
     local encodedUsernameColonPassword="${2}";
     local workitem="${3}";
 
-    [ "$encodedUsernameColonPassword" ];
-    [ "$workitem" ];
+    [ "${encodedUsernameColonPassword:?}" ];
+    [ "${workitem:?}" ];
 
     echo "getConcatstatuser started." >&2;
 
