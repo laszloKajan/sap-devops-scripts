@@ -3,22 +3,24 @@ if [ "$1" = "--help" ]; then
         cat << END ;
 SYNOPSIS
         # TMService API: https://api.sap.com/api/TMS_v2/resource
-        #            1               2             3                            4                  5                6
-        # tmp-upload "\${serviceKey}" "\${workitem}" "\${workspace:-mta_archives}" "\${nodeName:-DCP}" "\${doImport:-1}" "\${doForward:-1}"
+        #            1             2                            3                  4                5
+        # tmp-upload "\${workitem}" "\${workspace:-mta_archives}" "\${nodeName:-DCP}" "\${doImport:-1}" "\${doForward:-1}"
 
 ENVIRONMENT VARIABLES
-        -
+        TRANSPORT_SERVICE_INSTANCE_KEY      authentication
 END
         exit 0;
 fi;
 verbose=1
 
-serviceKey="${1:?}";
-workitem="${2:?}"; # E.g. "3200002672"
-workspace="${3:-mta_archives}";
-nodeName=$(echo "${4:-DCP}" | tr -d '/');
-doImport="${5:-1}";
-doForward="${6:-1}";
+workitem="${1:?}"; # E.g. "3200002672"
+workspace="${2:-mta_archives}";
+nodeName=$(echo "${3:-DCP}" | tr -d '/');
+doImport="${4:-1}";
+doForward="${5:-1}";
+
+# Environment
+serviceKey="${TRANSPORT_SERVICE_INSTANCE_KEY:?}";
 
 INSECURE=--insecure
 mtaPath="*.mtar"

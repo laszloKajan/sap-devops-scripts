@@ -8,8 +8,8 @@ SYNOPSIS
         tmp-upload "\${workitem}" "\${odata:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET}"
 
 ENVIRONMENT VARIABLES
-        PAGEUSER        authentication
-        PAGEPASSWORD    authentication
+        SOLMAN_USER     authentication
+        SOLMAN_PASS     authentication
 END
         exit 0;
 fi;
@@ -22,8 +22,8 @@ odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORK
 [ "$workitem" ];
 
 # Environment
-pageuser="${PAGEUSER:?}";
-pagepassword="${PAGEPASSWORD:?}";
+pageuser="${SOLMAN_USER:?}";
+pagepassword="${SOLMAN_PASS:?}";
 
 INSECURE=--insecure
 encodedUsernameColonPassword="${pageuser}:${pagepassword}";
