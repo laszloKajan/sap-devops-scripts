@@ -1,11 +1,15 @@
 #!/bin/sh -e
 # Work Item OData service:
-#   https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET?sap-language=EN&$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%273200000665%27)&$select=Concatstatuser&$format=json
+#   'My Work Items' only, won't show others' work items:
+#       https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET?sap-language=EN&$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%273200000665%27)&$select=Concatstatuser&$format=json
+#
+# Mass Change for Work Item:
+#   https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems?sap-language=en&$filter=Id%20eq%20%273200000665%27&$format=json
 if [ "$1" = "--help" ]; then
         cat << END ;
 SYNOPSIS
         #          1             2
-        tmp-upload "\${workitem}" "\${odata:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET}"
+        tmp-upload "\${workitem}" "\${odata:-https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems}"
 
 ENVIRONMENT VARIABLES
         SOLMAN_USER     authentication
@@ -17,7 +21,7 @@ fi;
 verbose=1
 
 workitem="${1:?}"; # E.g. (cs1) "3200002672", (bs1) "3200000665"
-odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET}";
+odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems}";
 
 # Environment
 pageuser="${SOLMAN_USER:?}";
@@ -43,13 +47,14 @@ getConcatstatuser () {
         --silent --show-error \
         -u "$encodedUsernameColonPassword" \
         -H "Accept: application/json" \
-        "${odata}?sap-language=EN&\$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%27${workitem}%27)&\$select=Concatstatuser";
+        "${odata}?sap-language=en&\$filter=Id%20eq%20%27${workitem}%27&\$select=StatusText";
 };
 
 # Action -----------------------------------------------------------------------
 
 workItemJSON=$(getConcatstatuser "$odata" "$encodedUsernameColonPassword" "$workitem");
-Concatstatuser=$(echo "${workItemJSON}" | jq -er '.d.results[0].Concatstatuser');
+#echo "workItemJSON=${workItemJSON}" >&2;
+Concatstatuser=$(echo "${workItemJSON}" | jq -er '.d.results[0].StatusText');
 
 [ "$Concatstatuser" = "In Development" ];
 
