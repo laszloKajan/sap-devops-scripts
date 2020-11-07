@@ -27,9 +27,9 @@ odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S
 pageuser="${SOLMAN_USER:?}";
 pagepassword="${SOLMAN_PASS:?}";
 
-INSECURE=--insecure
+INSECURE=
+#INSECURE=--insecure
 encodedUsernameColonPassword="${pageuser}:${pagepassword}";
-#encodedUsernameColonPassword=$(echo -n "${pageuser}:${pagepassword}" | base64 -w 0 -);
 
 getConcatstatuser () {
     local odata="${1}";
@@ -41,7 +41,6 @@ getConcatstatuser () {
 
     echo "getConcatstatuser started." >&2;
 
-        #-H "authorization: Basic ${encodedUsernameColonPassword}" \
     curl \
         $INSECURE \
         --silent --show-error \

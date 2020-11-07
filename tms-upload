@@ -22,7 +22,8 @@ doForward="${5:-1}";
 # Environment
 serviceKey="${TRANSPORT_SERVICE_INSTANCE_KEY:?}";
 
-INSECURE=--insecure
+INSECURE=
+#INSECURE=--insecure
 mtaPath="*.mtar"
 #namedUser=""
 commit=$(git rev-parse HEAD);
