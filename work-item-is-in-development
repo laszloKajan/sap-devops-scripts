@@ -1,15 +1,15 @@
 #!/bin/sh -e
 # Work Item OData service:
 #   'My Work Items' only, won't show others' work items:
-#       https://bs1web.sap.roche.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET?sap-language=EN&$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%273200000665%27)&$select=Concatstatuser&$format=json
+#       https://***.com/sap/opu/odata/salm/CRM_GENERIC_SRV/WORKSPACESET?sap-language=EN&$filter=(ProcessType%20eq%20%27S1MJ%27%20and%20ObjectId%20eq%20%273200000665%27)&$select=Concatstatuser&$format=json
 #
 # Mass Change for Work Item:
-#   https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems?sap-language=en&$filter=Id%20eq%20%273200000665%27&$format=json
+#   https://***.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems?sap-language=en&$filter=Id%20eq%20%273200000665%27&$format=json
 if [ "$1" = "--help" ]; then
         cat << END ;
 SYNOPSIS
-        #          1             2
-        tmp-upload "\${workitem}" "\${solmanHost:-bs1web.sap.roche.com}"
+        #                           1             2
+        work-item-is-in-development "\${workitem}" "\${solmanHost:-bs1web.sap.roche.com}"
 
 ENVIRONMENT VARIABLES
         SOLMAN_USER     authentication
