@@ -9,7 +9,7 @@ if [ "$1" = "--help" ]; then
         cat << END ;
 SYNOPSIS
         #          1             2
-        tmp-upload "\${workitem}" "\${odata:-https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems}"
+        tmp-upload "\${workitem}" "\${solmanHost:-bs1web.sap.roche.com}"
 
 ENVIRONMENT VARIABLES
         SOLMAN_USER     authentication
@@ -21,7 +21,9 @@ fi;
 verbose=1
 
 workitem="${1:?}"; # E.g. (cs1) "3200002672", (bs1) "3200000665"
-odata="${2:-https://bs1web.sap.roche.com/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems}";
+solmanHost="${2:-bs1web.sap.roche.com}";
+
+odata="https://${solmanHost}/sap/opu/odata/SALM/MC_SRV/DocTypeSet('S1CG%3BS1MJ')/DocWorkItems";
 
 # Environment
 pageuser="${SOLMAN_USER:?}";
@@ -53,9 +55,13 @@ getConcatstatuser () {
 
 workItemJSON=$(getConcatstatuser "$odata" "$encodedUsernameColonPassword" "$workitem");
 #echo "workItemJSON=${workItemJSON}" >&2;
-Concatstatuser=$(echo "${workItemJSON}" | jq -er '.d.results[0].StatusText');
+if ! { wiStatus=$(echo "${workItemJSON}" | jq -er '.d.results[0].StatusText'); } then
+        # <html><head><title>Logon Error Message</title><META htt...
+        echo "${workItemJSON}" >&2;
+        exit 1;
+fi;
 
-[ "$Concatstatuser" = "In Development" ];
+[ "$wiStatus" = "In Development" ];
 
 if [ "$verbose" ]; then echo "Work item ${workitem} is in development." >&2; fi;
 
