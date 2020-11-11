@@ -61,7 +61,8 @@ authentication () {
     echo "OAuth Token retrieval started." >&2;
     if [ "$verbose" ]; then echo "UAA-URL: '${uaaUrl}', ClientId: '${oauthClientId}'" >&2; fi;
 
-    local encodedUsernameColonPassword=$(echo -n "${oauthClientId}:${oauthClientSecret}" | base64 -w 0 -);
+    # busybox base64 doesn't have '-w' argument
+    local encodedUsernameColonPassword=$(echo -n "${oauthClientId}:${oauthClientSecret}" | base64 | tr -d '\n\r');
 
     #    ${verbose:+--verbose} \
     local response;
