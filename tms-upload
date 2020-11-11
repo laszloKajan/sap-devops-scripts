@@ -7,6 +7,7 @@ SYNOPSIS
         # tmp-upload "\${workitem}" "\${workspace:-mta_archives}" "\${nodeName:-DCP}" "\${doImport:-1}" "\${doForward:-1}"
 
 ENVIRONMENT VARIABLES
+        CI_PROJECT_ID                       GitLab project ID, optional, defaults to \$(basename \$PWD)
         TRANSPORT_SERVICE_INSTANCE_KEY      authentication
 END
         exit 0;
@@ -28,6 +29,14 @@ mtaPath="*.mtar"
 #namedUser=""
 commit=$(git rev-parse HEAD);
 description="WI: $workitem, commit: $commit";
+
+if [ "$CI_PROJECT_ID" ]; then project="$CI_PROJECT_ID"; else project=$(basename "$PWD"); fi;
+# See requirement below, plus exclude ','
+project=$(echo -n "$project" | tr -c '[:alnum:] ._~:\/?#[]@!$&()*+;=%-' '_');
+
+if [ "$project" ]; then description="${description}, project: ${project}"; fi;
+# See requirement below
+description=$(echo -n "$description" | tr -c '[:alnum:] ._~:\/?#[]@!$&()*+,;=%-' '_');
 [ "${description:?}" ];
 if [ "$verbose" ]; then echo "Description: '${description}'" >&2; fi;
 #exit 1;
