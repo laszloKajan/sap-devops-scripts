@@ -3,11 +3,10 @@ if [ "$1" = "--help" ]; then
         cat << END ;
 SYNOPSIS
         # TMService API: https://api.sap.com/api/TMS_v2/resource
-        #            1             2                            3                  4                5
-        # tmp-upload "\${workitem}" "\${workspace:-mta_archives}" "\${nodeName:-DCP}" "\${doImport:-1}" "\${doForward:-1}"
+        #            1             2                            3                  4                5                 6
+        # tmp-upload "\${workitem}" "\${workspace:-mta_archives}" "\${nodeName:-DCP}" "\${doImport:-1}" "\${doForward:-1}" "\${project:-\$(basename \$PWD)}"
 
 ENVIRONMENT VARIABLES
-        CI_PROJECT_ID                       GitLab project ID, optional, defaults to \$(basename \$PWD)
         TRANSPORT_SERVICE_INSTANCE_KEY      authentication
 END
         exit 0;
@@ -19,6 +18,7 @@ workspace="${2:-mta_archives}";
 nodeName=$(echo "${3:-DCP}" | tr -d '/');
 doImport="${4:-1}";
 doForward="${5:-1}";
+project="${6:-$(basename $PWD)}"
 
 # Environment
 serviceKey="${TRANSPORT_SERVICE_INSTANCE_KEY:?}";
@@ -30,7 +30,6 @@ mtaPath="*.mtar"
 commit=$(git rev-parse HEAD);
 description="WI: $workitem, commit: $commit";
 
-if [ "$CI_PROJECT_ID" ]; then project="$CI_PROJECT_ID"; else project=$(basename "$PWD"); fi;
 # See requirement below, plus exclude ','
 project=$(echo -n "$project" | tr -c '[:alnum:] ._~:\/?#[]@!$&()*+;=%-' '_');
 
